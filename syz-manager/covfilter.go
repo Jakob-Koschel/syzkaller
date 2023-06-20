@@ -154,6 +154,10 @@ func createCoverageBitmap(target *targets.Target, pcs map[uint32]uint32) []byte 
 	return data
 }
 
+func (mgr *Manager) getWeightedPCs() (bool, map[uint32]uint32) {
+	return len(mgr.coverFilter) > 0, mgr.coverFilter;
+}
+
 func coverageFilterRegion(pcs map[uint32]uint32) (uint32, uint32) {
 	start, end := ^uint32(0), uint32(0)
 	for pc := range pcs {
@@ -177,4 +181,15 @@ func compileRegexps(regexpStrings []string) ([]*regexp.Regexp, error) {
 		regexps = append(regexps, r)
 	}
 	return regexps, nil
+}
+
+func (mgr *Manager) CalProgWeight(pcs []uint32) int {
+	prio := int(0)
+
+	for _, pc := range pcs {
+		if _, ok := mgr.coverFilter[pc]; ok {
+			prio += int(mgr.coverFilter[pc])
+		}
+	}
+	return prio
 }

@@ -176,6 +176,8 @@ func (proc *Proc) triageInput(item *WorkTriage) {
 		RawCover: rawCover,
 	})
 
+	// the weight of the proc is determined by summing up the weight of the reached PCs
+	item.p.Weight = proc.fuzzer.calCoverWeight(inputCover.Serialize())
 	proc.fuzzer.addInputToCorpus(item.p, inputSignal, sig)
 
 	if item.flags&ProgSmashed == 0 {

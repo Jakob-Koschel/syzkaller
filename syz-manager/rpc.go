@@ -64,6 +64,7 @@ type RPCManagerView interface {
 	newInput(inp rpctype.Input, sign signal.Signal) bool
 	candidateBatch(size int) []rpctype.Candidate
 	rotateCorpus() bool
+	getWeightedPCs() (bool, map[uint32]uint32)
 }
 
 func startRPCServer(mgr *Manager) (*RPCServer, error) {
@@ -86,6 +87,15 @@ func startRPCServer(mgr *Manager) (*RPCServer, error) {
 	serv.port = s.Addr().(*net.TCPAddr).Port
 	go s.Serve()
 	return serv, nil
+}
+
+func (serv *RPCServer) GetWeightedPCs(a *rpctype.GetWeightedPCsArgs, r *rpctype.GetWeightedPCsRes) error {
+	serv.mu.Lock()
+	defer serv.mu.Unlock()
+	enableFilter, weightedPCs := serv.mgr.getWeightedPCs()
+	r.EnableFilter = enableFilter
+	r.WeightedPCs = weightedPCs
+	return nil
 }
 
 func (serv *RPCServer) Connect(a *rpctype.ConnectArgs, r *rpctype.ConnectRes) error {

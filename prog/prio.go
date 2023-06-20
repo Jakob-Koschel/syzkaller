@@ -151,7 +151,9 @@ func (target *Target) calcDynamicPrio(corpus []*Prog) [][]int32 {
 	for _, p := range corpus {
 		for idx0, c0 := range p.Calls {
 			for _, c1 := range p.Calls[idx0+1:] {
-				prios[c0.Meta.ID][c1.Meta.ID]++
+				// take into account the prog's weight
+				// (generated based on the accumulated weighted PCs it reached)
+				prios[c0.Meta.ID][c1.Meta.ID] += (1 * int32(p.Weight))
 			}
 		}
 	}

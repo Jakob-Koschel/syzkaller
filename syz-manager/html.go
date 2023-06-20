@@ -215,6 +215,7 @@ func (mgr *Manager) httpCorpus(w http.ResponseWriter, r *http.Request) {
 			Sig:   sig,
 			Short: p.String(),
 			Cover: len(inp.Cover),
+			Prio:   mgr.CalProgWeight(inp.Cover),
 		})
 	}
 	sort.Slice(data.Inputs, func(i, j int) bool {
@@ -769,6 +770,7 @@ type UIInput struct {
 	Sig   string
 	Short string
 	Cover int
+	Prio  int
 }
 
 var summaryTemplate = pages.Create(`
@@ -917,6 +919,7 @@ var corpusTemplate = pages.Create(`
 	<tr>
 		<th>Coverage</th>
 		<th>Program</th>
+		<th>Prio</th>
 	</tr>
 	{{range $inp := $.Inputs}}
 	<tr>
@@ -927,6 +930,7 @@ var corpusTemplate = pages.Create(`
 	{{end}}
 		</td>
 		<td><a href="/input?sig={{$inp.Sig}}">{{$inp.Short}}</a></td>
+		<td>{{printf "%d" $inp.Prio}}</td>
 	</tr>
 	{{end}}
 </table>

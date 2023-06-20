@@ -58,6 +58,7 @@ type Fuzzer struct {
 	corpusHashes map[hash.Sig]struct{}
 	corpusPrios  []int64
 	sumPrios     int64
+	weightedPCs  map[uint32]uint32
 
 	signalMu     sync.RWMutex
 	corpusSignal signal.Signal // signal of inputs in corpus
@@ -295,6 +296,9 @@ func main() {
 		calls[target.Syscalls[id]] = true
 	}
 	fuzzer.choiceTable = target.BuildChoiceTable(fuzzer.corpus, calls)
+	// the manager parsed the file containing the weighted PCs,
+	// we need that info in the fuzzer to generate the ChoiceTable
+	fuzzer.getWeightedPCs()
 
 	if r.CoverFilterBitmap != nil {
 		fuzzer.execOpts.Flags |= ipc.FlagEnableCoverageFilter
@@ -528,6 +532,9 @@ func (fuzzer *Fuzzer) addInputToCorpus(p *prog.Prog, sign signal.Signal, sig has
 		fuzzer.corpus = append(fuzzer.corpus, p)
 		fuzzer.corpusHashes[sig] = struct{}{}
 		prio := int64(len(sign))
+		if len(fuzzer.weightedPCs) > 0 {
+			prio = int64(p.Weight)
+		}
 		if sign.Empty() {
 			prio = 1
 		}
@@ -629,4 +636,30 @@ func parseOutputType(str string) OutputType {
 		log.SyzFatalf("-output flag must be one of none/stdout/dmesg/file")
 		return OutputNone
 	}
+}
+
+// fetches the weighted PCs from the manager
+func (fuzzer *Fuzzer) getWeightedPCs() {
+	a := &rpctype.GetWeightedPCsArgs{}
+	r := &rpctype.GetWeightedPCsRes{EnableFilter: false}
+	if err := fuzzer.manager.Call("Manager.GetWeightedPCs", a, r); err != nil {
+		log.Fatalf("Manager.GetWeightedPCs call failed: %v", err)
+	}
+	if r.EnableFilter {
+		fuzzer.execOpts.Flags |= ipc.FlagEnableCoverageFilter
+	}
+	if len(r.WeightedPCs) > 0 {
+		fuzzer.weightedPCs = r.WeightedPCs
+	}
+}
+
+// compute the accumulated weight for an array of pcs
+func (fuzzer *Fuzzer) calCoverWeight(pcs []uint32) uint32 {
+	weight := uint32(0)
+	for _, pc := range pcs {
+		if _, ok := fuzzer.weightedPCs[pc]; ok {
+			weight += fuzzer.weightedPCs[pc]
+		}
+	}
+	return weight
 }

@@ -200,3 +200,12 @@ type RunTestDoneArgs struct {
 	Info   []*ipc.ProgInfo
 	Error  string
 }
+
+type GetWeightedPCsArgs struct {
+	Nop bool
+}
+
+type GetWeightedPCsRes struct {
+	EnableFilter bool
+	WeightedPCs  map[uint32]uint32
+}
